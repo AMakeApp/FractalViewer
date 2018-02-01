@@ -9,6 +9,12 @@ from PIL import Image
 
 # np.set_printoptions(threshold=np.nan)
 
+
+class Fractal:
+    MANDELBROT = 0
+    JULIA = 1
+
+
 """ CUDA C functions
     - mandelbrot: calculating mandelbrot set
     :param matrix (float): start x, start y, image size(length), precision
@@ -35,8 +41,8 @@ cu = SourceModule("""
     }
     
     __global__ void julia(double *matrix, double *c, int *result) {
-        double a = matrix[0] + (float)blockIdx.x * matrix[3];
-        double b = matrix[1] + (float)blockIdx.y * matrix[3];
+        double a = matrix[0] + (float)blockIdx.x * matrix[2];
+        double b = matrix[1] + (float)blockIdx.y * matrix[2];
         
         double an = a, bn = b;
         
@@ -46,7 +52,7 @@ cu = SourceModule("""
             bn = 2 * tmp * bn + c[1];
             
             if (an * an + bn * bn > 4.0f) {
-                result[blockIdx.y * (int)matrix[2] + blockIdx.x] = i;
+                result[blockIdx.x * gridDim.y + blockIdx.y] = i;
                 break;
             }
         }
@@ -82,18 +88,20 @@ def drawmandelbrot(start, size, unit):
     return array2imgarray(result, cc.m_cyclic_wrwbw_40_90_c42_s25)
 
 
-def drawjulia(start, size, plainsize, c):
+def drawjulia(start, size, unit, c):
     """ Calculating and drawing julia set
     :param start: left-bottom point in plane
-    :param size: image size
-    :param plainsize: width in plain (coordinate)
+    :param size: image size(width, height)
+    :param unit: gap among pixels
     :param c: constant for julia set
     :return: image 2D array (format: RGBA)
     """
 
-    matrix = np.array([start[0] - plainsize / 2, start[1] - plainsize / 2, size, plainsize / size], np.float64)
+    size = size.astype(np.uint32, copy=False)
+
+    matrix = np.array([start[0] - size[0] / 2 * unit, start[1] - size[1] / 2 * unit, unit], np.float64)
     c = np.array([c.real, c.imag], np.float64)
-    result = np.empty((size, size), np.int32)
+    result = np.empty((size[0], size[1]), np.int32)
     matrix_gpu = cuda.mem_alloc(matrix.nbytes)
     c_gpu = cuda.mem_alloc(c.nbytes)
     result_gpu = cuda.mem_alloc(result.nbytes)
@@ -102,9 +110,12 @@ def drawjulia(start, size, plainsize, c):
     cuda.memcpy_htod(c_gpu, c)
 
     func = cu.get_function("julia")
-    func(matrix_gpu, c_gpu, result_gpu, block=(1, 1, 1), grid=(size, size))
+    func(matrix_gpu, c_gpu, result_gpu, block=(1, 1, 1), grid=(int(size[0]), int(size[1])))
 
     cuda.memcpy_dtoh(result, result_gpu)
+
+    # Because in image symmetric transformation occurs between x axis and y axis
+    result = np.transpose(result)
 
     return array2imgarray(result, cc.m_cyclic_wrwbw_40_90_c42_s25)
 

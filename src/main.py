@@ -36,13 +36,14 @@ class Main(QMainWindow):
         img = None
         size = np.array([self.label.width(), self.label.height()])
 
-        if self.config['fractal_type'] == Fractal.MANDELBROT:
-            img = fractal.drawmandelbrot(self.now_position, size * self.config['resolution'],
-                                         self.unit / self.config['resolution'])
-        elif self.config['fractal_type'] == Fractal.JULIA:
-            img = fractal.drawjulia(self.now_position, size * self.config['resolution'],
-                                    self.unit / self.config['resolution'],
-                                    complex(self.config['julia_c']))
+        # print(self.now_position, size * self.config['resolution'],
+        #       self.unit / self.config['resolution'])
+
+        img = fractal.calcMandelbrot(self.config['fractal_type'],
+                                     self.now_position,
+                                     size * self.config['resolution'],
+                                     self.unit / self.config['resolution'],
+                                     complex(self.config['julia_c']))
 
         qimg = QPixmap.fromImage(ImageQt(img))
         qimg = qimg.scaled(self.label.size(), Qt.KeepAspectRatio)

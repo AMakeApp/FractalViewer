@@ -91,8 +91,8 @@
                 <property name="title">
                     <string>File</string>
                 </property>
-                <addaction name="actionOpen"/>
-                <addaction name="actionSave"/>
+                <addaction name="actionApplyDetail"/>
+                <addaction name="actionCopyDetail"/>
                 <addaction name="actionExport"/>
                 <addaction name="actionPreference"/>
             </widget>
@@ -105,14 +105,14 @@
             <addaction name="menu"/>
             <addaction name="menuHelp"/>
         </widget>
-        <action name="actionOpen">
+        <action name="actionApplyDetail">
             <property name="text">
-                <string>Open</string>
+                <string>Apply Detail</string>
             </property>
         </action>
-        <action name="actionSave">
+        <action name="actionCopyDetail">
             <property name="text">
-                <string>Save</string>
+                <string>Copy Detail</string>
             </property>
         </action>
         <action name="actionExport">

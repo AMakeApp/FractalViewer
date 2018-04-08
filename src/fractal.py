@@ -6,6 +6,8 @@ import matplotlib.cm as cm
 import colorcet as cc
 from matplotlib.colors import Normalize
 from PIL import Image
+from time import time
+
 
 # np.set_printoptions(threshold=np.nan)
 
@@ -31,7 +33,8 @@ cu = SourceModule("""
         double an = a, bn = b;
         double aan = an * an, bbn = bn * bn;
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 400; i+=5) {
+            // iteration 1
             if (isJulia[0]) { // Julia Set
                 bn = 2 * an * bn + c[1];
                 an = aan - bbn + c[0];
@@ -43,9 +46,81 @@ cu = SourceModule("""
                 aan = an * an;
                 bbn = bn * bn;
             }
-            
+
             if (an * an + bn * bn > 4.0f) {
                 result[idx_x * gridDim.y * blockDim.y + idx_y] = i;
+                break;
+            }
+
+            // iteration 2
+            if (isJulia[0]) { // Julia Set
+                bn = 2 * an * bn + c[1];
+                an = aan - bbn + c[0];
+                aan = an * an;
+                bbn = bn * bn;
+            } else { // Mandelbrot Set
+                bn = 2 * an * bn + b;
+                an = aan - bbn + a;
+                aan = an * an;
+                bbn = bn * bn;
+            }
+
+            if (an * an + bn * bn > 4.0f) {
+                result[idx_x * gridDim.y * blockDim.y + idx_y] = i + 1;
+                break;
+            }
+
+            // iteration 3
+            if (isJulia[0]) { // Julia Set
+                bn = 2 * an * bn + c[1];
+                an = aan - bbn + c[0];
+                aan = an * an;
+                bbn = bn * bn;
+            } else { // Mandelbrot Set
+                bn = 2 * an * bn + b;
+                an = aan - bbn + a;
+                aan = an * an;
+                bbn = bn * bn;
+            }
+
+            if (an * an + bn * bn > 4.0f) {
+                result[idx_x * gridDim.y * blockDim.y + idx_y] = i + 2;
+                break;
+            }
+
+            // iteration 4
+            if (isJulia[0]) { // Julia Set
+                bn = 2 * an * bn + c[1];
+                an = aan - bbn + c[0];
+                aan = an * an;
+                bbn = bn * bn;
+            } else { // Mandelbrot Set
+                bn = 2 * an * bn + b;
+                an = aan - bbn + a;
+                aan = an * an;
+                bbn = bn * bn;
+            }
+
+            if (an * an + bn * bn > 4.0f) {
+                result[idx_x * gridDim.y * blockDim.y + idx_y] = i + 3;
+                break;
+            }
+
+            // iteration 5
+            if (isJulia[0]) { // Julia Set
+                bn = 2 * an * bn + c[1];
+                an = aan - bbn + c[0];
+                aan = an * an;
+                bbn = bn * bn;
+            } else { // Mandelbrot Set
+                bn = 2 * an * bn + b;
+                an = aan - bbn + a;
+                aan = an * an;
+                bbn = bn * bn;
+            }
+
+            if (an * an + bn * bn > 4.0f) {
+                result[idx_x * gridDim.y * blockDim.y + idx_y] = i + 4;
                 break;
             }
         }
@@ -63,6 +138,8 @@ def calcMandelbrot(type, start, size, unit, c=0 + 0j):
     :return: image 2D array (format: RGBA)
     """
 
+    s = time()
+
     # change size to multiple of 16(bigger or equal to prior size). Because of threads per block is 16
     size = ((size + 255) / 256).astype(np.uint32) * 256
 
@@ -78,6 +155,8 @@ def calcMandelbrot(type, start, size, unit, c=0 + 0j):
 
     # Because in image symmetric transformation occurs between x axis and y axis
     result = np.transpose(result)
+
+    # print("%f s" % (time() - s))
 
     return array2imgarray(result, cc.m_cyclic_wrwbw_40_90_c42_s25)
 

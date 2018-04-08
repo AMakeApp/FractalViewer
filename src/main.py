@@ -4,11 +4,10 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PIL.ImageQt import ImageQt
 import sys
-import os.path
-import time
-import threading
+import os
 import json
 import numpy as np
+import pyperclip
 import fractal
 from fractal import Fractal
 from preference import Preference
@@ -16,7 +15,7 @@ from preference import Preference
 
 class Main(QMainWindow):
     config = None
-    now_position = np.array([0., 0.])  # center point
+    now_position = np.array([0., 0.], np.float64)  # center point
     unit = 4. / 800  # gap among pixels
 
     isResizing = False
@@ -25,15 +24,14 @@ class Main(QMainWindow):
         super(Main, self).__init__(parent)
 
         uic.loadUi("./ui/main.ui", self)
-        self.actionPreference.triggered.connect(self.configPreference)
-        # self.installEventFilter(self)
+        self.actionApplyDetail.triggered.connect(self.menuApplyDetail)
+        self.actionCopyDetail.triggered.connect(self.menuCopyDetail)
+        self.actionExport.triggered.connect(self.menuExport)
+        self.actionPreference.triggered.connect(self.menuPreference)
 
         self.config = json.load(open("./fractalviewer.config"))
 
-        # self.draw()
-
     def draw(self):
-        img = None
         size = np.array([self.label.width(), self.label.height()])
 
         # print(self.now_position, size * self.config['resolution'],
@@ -49,7 +47,25 @@ class Main(QMainWindow):
         qimg = qimg.scaled(self.label.size(), Qt.KeepAspectRatio)
         self.label.setPixmap(qimg)
 
-    def configPreference(self):
+    def menuApplyDetail(self):
+        detail, ok = QInputDialog.getText(self, "Enter Fractal Detail", "")
+        if ok:
+            pos_x, pos_y, unit = detail.split(",")
+            self.now_position = np.array([float(pos_x), float(pos_y)], np.float64)
+            self.unit = float(unit)
+            self.draw()
+
+    def menuCopyDetail(self):
+        detail = str(self.now_position[0]) + "," + str(self.now_position[1]) + "," + str(self.unit)
+        print(detail)
+        pyperclip.copy(detail)
+
+    def menuExport(self):
+        fileName = QFileDialog.getSaveFileName(self, "Save Fractal Image", "", ".png;;.jpg")
+        qimg = self.label.pixmap()
+        qimg.save(fileName[0] + fileName[1])
+
+    def menuPreference(self):
         w = Preference(self)
         w.show()
         w.exec()
@@ -65,6 +81,10 @@ class Main(QMainWindow):
             self.now_position = self.now_position + np.array([pos.x() * self.unit, pos.y() * self.unit]) \
                 - np.array([size[0] / 2 * self.unit, size[1] / 2 * self.unit])
 
+            self.draw()
+        elif event.button() & Qt.RightButton:
+            self.now_position = np.array([0., 0.], np.float64)
+            self.unit = 4. / 800
             self.draw()
 
         # if event.button() & Qt.RightButton:
@@ -86,21 +106,7 @@ class Main(QMainWindow):
         self.unit /= ratio
         self.draw()
 
-    def eventFilter(self, obj: QObject, event: QEvent):
-        # For check resizeEvent endpoint
-        if self.isResizing:
-            # print(event.type())
-            if event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.NonClientAreaMouseButtonRelease:
-
-                if QMouseEvent(event).button() == Qt.LeftButton:
-                    self.draw()
-                    self.isResizing = False
-                    print("resizeEvent done!")
-
-        return QObject.eventFilter(self, obj, event)
-
     def resizeEvent(self, event: QResizeEvent):
-        self.isResizing = True
         self.draw()
 
 
